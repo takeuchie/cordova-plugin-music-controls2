@@ -50,6 +50,7 @@ public class MusicControls extends CordovaPlugin {
 	private AudioManager mAudioManager;
 	private PendingIntent mediaButtonPendingIntent;
 	private boolean mediaButtonAccess=true;
+	private long playbackPosition = PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN;
 	private android.media.session.MediaSession.Token token;
 
   	private Activity cordovaActivity;
@@ -183,6 +184,14 @@ public class MusicControls extends CordovaPlugin {
 					//album
 					metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_ALBUM, infos.album);
 
+					//scrubber
+					if (infos.hasScrubbing) {
+						metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, infos.duration);
+						playbackPosition = infos.elapsed;
+					} else {
+						playbackPosition = PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN;
+					}
+
 					Bitmap art = getBitmapCover(infos.cover);
 					if(art != null){
 						metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, art);
@@ -219,6 +228,16 @@ public class MusicControls extends CordovaPlugin {
 			this.notification.updateDismissable(dismissable);
 			callbackContext.success("success");
 		}
+		else if (action.equals("updateElapsed")){
+			final JSONObject params = args.getJSONObject(0);
+			playbackPosition = params.getLong("elapsed") * 1000;
+			final boolean isPlaying = params.getBoolean("isPlaying");
+			if (isPlaying)
+				setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+			else
+				setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+			callbackContext.success("success");
+		}
 		else if (action.equals("destroy")){
 			this.notification.destroy();
 			this.mMessageReceiver.stopListening();
@@ -250,19 +269,33 @@ public class MusicControls extends CordovaPlugin {
 		super.onReset();
 	}
 	private void setMediaPlaybackState(int state) {
-		PlaybackStateCompat.Builder playbackstateBuilder = new PlaybackStateCompat.Builder();
-		if( state == PlaybackStateCompat.STATE_PLAYING ) {
-			playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PAUSE | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
+		long actions = PlaybackStateCompat.ACTION_PLAY_PAUSE |
+				PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
+				PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
 				PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID |
-				PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH);
-			playbackstateBuilder.setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1.0f);
+				PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH;
+
+		float playbackSpeed;
+		long position;
+		if (state == PlaybackStateCompat.STATE_PLAYING) {
+			actions |= PlaybackStateCompat.ACTION_PAUSE;
+			playbackSpeed = 1.0f;
+			position = playbackPosition;
 		} else {
-			playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
-				PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID |
-				PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH);
-			playbackstateBuilder.setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 0);
+			actions |= PlaybackStateCompat.ACTION_PLAY;
+			playbackSpeed = 0;
+			//position = this.mediaSessionCompat.
 		}
-		this.mediaSessionCompat.setPlaybackState(playbackstateBuilder.build());
+
+		if (playbackPosition != PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN) {
+			actions |= PlaybackStateCompat.ACTION_SEEK_TO;
+		}
+
+		PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder()
+				.setActions(actions)
+				.setState(state, playbackPosition, playbackSpeed)
+				.build();
+		this.mediaSessionCompat.setPlaybackState(playbackState);
 	}
 	
 	// Get image from url
