@@ -52,6 +52,18 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
   }
 
   @Override
+  public void onSeekTo(long pos) {
+    super.onSeekTo(pos);
+    if (this.cb != null) {
+      this.cb.success("{" +
+              "\"message\": \"music-controls-seek-to\"," +
+              "\"position\": " + (pos / 1000) +
+              "}");
+      this.cb = null;
+    }
+  }
+
+  @Override
   public void onPlayFromMediaId(String mediaId, Bundle extras) {
     super.onPlayFromMediaId(mediaId, extras);
   }

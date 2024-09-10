@@ -11,6 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Random;
 import java.util.UUID;
+import java.util.List;
 
 import android.util.Log;
 import android.R;
@@ -41,7 +42,7 @@ public class MusicControlsNotification {
 
 	// Public Constructor
 	public MusicControlsNotification(Activity cordovaActivity, int id, Token token){
-		this.CHANNEL_ID = UUID.randomUUID().toString();
+		this.CHANNEL_ID = "MusicControls2-Chan"; //UUID.randomUUID().toString() channel ID should be unique per app and constant
 		this.notificationID = id;
 		this.cordovaActivity = cordovaActivity;
 		Context context = cordovaActivity;
@@ -50,6 +51,18 @@ public class MusicControlsNotification {
 
 		// use channelID for Oreo and higher
 		if (Build.VERSION.SDK_INT >= 26) {
+			// check if chan name is correct and only clear if not
+			// Clean up old duplication notification channels
+			List<NotificationChannel> chanList = this.notificationManager.getNotificationChannels();
+
+			if (chanList.get(0).getId() != this.CHANNEL_ID) {
+				for (int i=0; i<chanList.size(); i++) {
+					//System.out.println(list.get(i));
+					String chanID = chanList.get(i).getId();
+					this.notificationManager.deleteNotificationChannel(chanID);
+				}
+			}
+
 			// The user-visible name of the channel.
 			CharSequence name = "Audio Controls";
 			// The user-visible description of the channel.
@@ -208,6 +221,9 @@ public class MusicControlsNotification {
 				builder.setSmallIcon(this.getResourceId(infos.pauseIcon, android.R.drawable.ic_media_pause));
 			}
 		}
+
+		// color the notification based on coverart in Android 8+
+		builder.setColorized(true);
 
 		//Set LargeIcon
 		if (!infos.cover.isEmpty() && this.bitmapCover != null){
