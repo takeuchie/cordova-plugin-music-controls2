@@ -41,6 +41,7 @@
 
 		<framework src="com.android.support:support-v4:28.0.0" />
 
+		<source-file src="src/android/BitmapUtils.java" target-dir="src/com/homerours/musiccontrols" />
 		<source-file src="src/android/MusicControls.java" target-dir="src/com/homerours/musiccontrols" />
 		<source-file src="src/android/MediaSessionCallback.java" target-dir="src/com/homerours/musiccontrols" />
 		<source-file src="src/android/MusicControlsBroadcastReceiver.java" target-dir="src/com/homerours/musiccontrols" />

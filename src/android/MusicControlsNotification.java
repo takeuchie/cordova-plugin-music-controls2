@@ -1,34 +1,25 @@
 package com.homerours.musiccontrols;
 
+
+
+import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.util.Log;
+import android.os.Build;
+import android.media.session.MediaSession.Token;
+import android.os.Bundle;
 import org.apache.cordova.CordovaInterface;
-
-
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.File;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Random;
 import java.util.UUID;
 import java.util.List;
-
-import android.util.Log;
 import android.R;
-import android.content.Context;
-import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Intent;
-import android.os.Bundle;
-import android.os.Build;
-import android.graphics.BitmapFactory;
-import android.graphics.Bitmap;
-import android.net.Uri;
-import android.media.session.MediaSession.Token;
-
-import android.app.NotificationChannel;
+import android.app.Notification.CarExtender;
 
 public class MusicControlsNotification {
 	private Activity cordovaActivity;
@@ -86,11 +77,13 @@ public class MusicControlsNotification {
 	public void updateNotification(MusicControlsInfos newInfos){
 		// Check if the cover has changed	
 		if (!newInfos.cover.isEmpty() && (this.infos == null || !newInfos.cover.equals(this.infos.cover))){
-			this.getBitmapCover(newInfos.cover);
+			Context context = this.cordovaActivity;
+			this.bitmapCover = BitmapUtils.getBitmapCover(context, newInfos.cover);
 		}
 		this.infos = newInfos;
 		this.createBuilder();
 		Notification noti = this.notificationBuilder.build();
+        //Log.w("MusicControls","Notification Title"+ noti.extras.getString(noti.EXTRA_TITLE,"empty"));
 		this.notificationManager.notify(this.notificationID, noti);
 		this.onNotificationUpdated(noti);
 	}
@@ -113,59 +106,13 @@ public class MusicControlsNotification {
 		this.onNotificationUpdated(noti);
 	}
 
-	// Get image from url
-	private void getBitmapCover(String coverURL){
-		try{
-			if(coverURL.matches("^(https?|ftp)://.*$"))
-				// Remote image
-				this.bitmapCover = getBitmapFromURL(coverURL);
-			else{
-				// Local image
-				this.bitmapCover = getBitmapFromLocal(coverURL);
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
+	private CarExtender prepareCarExtenderNotification() {
+		CarExtender carExtenderNotification = new CarExtender(); 
+		if (!infos.cover.isEmpty() && this.bitmapCover != null) {
+			carExtenderNotification.setLargeIcon(this.bitmapCover);
 		}
-	}
 
-	// get Local image
-	private Bitmap getBitmapFromLocal(String localURL){
-		try {
-			Uri uri = Uri.parse(localURL);
-			File file = new File(uri.getPath());
-			FileInputStream fileStream = new FileInputStream(file);
-			BufferedInputStream buf = new BufferedInputStream(fileStream);
-			Bitmap myBitmap = BitmapFactory.decodeStream(buf);
-			buf.close();
-			return myBitmap;
-		} catch (Exception ex) {
-			try {
-				InputStream fileStream = cordovaActivity.getAssets().open("www/" + localURL);
-				BufferedInputStream buf = new BufferedInputStream(fileStream);
-				Bitmap myBitmap = BitmapFactory.decodeStream(buf);
-				buf.close();
-				return myBitmap;
-			} catch (Exception ex2) {
-				ex.printStackTrace();
-				ex2.printStackTrace();
-				return null;
-			}
-		}
-	}
-
-	// get Remote image
-	private Bitmap getBitmapFromURL(String strURL) {
-		try {
-			URL url = new URL(strURL);
-			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-			connection.setDoInput(true);
-			connection.connect();
-			InputStream input = connection.getInputStream();
-			return BitmapFactory.decodeStream(input);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			return null;
-		}
+		return carExtenderNotification; 
 	}
 
 	private void createBuilder(){
@@ -229,6 +176,7 @@ public class MusicControlsNotification {
 		//Set LargeIcon
 		if (!infos.cover.isEmpty() && this.bitmapCover != null){
 			builder.setLargeIcon(this.bitmapCover);
+			builder.extend(prepareCarExtenderNotification());
 		}
 
 		//Open app if tapped

@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 
+import android.util.Log;
+
 public class MusicControlsServiceConnection implements ServiceConnection {
     protected MusicControlsNotificationKiller service;
     protected Activity activity;
