@@ -57,7 +57,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
     if (this.cb != null) {
       this.cb.success("{" +
               "\"message\": \"music-controls-seek-to\"," +
-              "\"position\": " + (pos / 1000) +
+              "\"position\": " + (pos) +
               "}");
       this.cb = null;
     }
@@ -67,6 +67,18 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
   public void onPlayFromMediaId(String mediaId, Bundle extras) {
     super.onPlayFromMediaId(mediaId, extras);
   }
+
+       @Override
+    public void onSetShuffleMode(int shuffleMode) {
+        super.onSetShuffleMode(shuffleMode); 
+        if (this.cb != null) {
+        this.cb.success("{" +
+            "\"message\": \"shuffle-mode-changed\"," +
+            "\"shuffleMode\": " + shuffleMode +
+            "}");
+        this.cb = null;
+        }
+    }
 
   @Override
   public boolean onMediaButtonEvent(Intent mediaButtonIntent) {

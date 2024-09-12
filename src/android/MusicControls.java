@@ -1,54 +1,52 @@
 package com.homerours.musiccontrols;
-
+import android.app.Activity;
+import android.app.Notification;
+import android.app.PendingIntent;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.media.AudioManager;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
+import android.graphics.Bitmap;
+import android.os.IBinder;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaWebView;
-import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import android.app.Notification;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
-
-import android.media.session.MediaSession.Token;
-
 import android.util.Log;
+import org.apache.cordova.PluginResult;
+import android.app.Notification;
+import android.media.session.MediaSession.Token;
 import android.app.Activity;
-import android.content.Context;
-import android.content.IntentFilter;
-import android.content.Intent;
-import android.app.PendingIntent;
-import android.content.ServiceConnection;
-import android.content.ComponentName;
 import android.app.Service;
-import android.os.IBinder;
 import android.os.Bundle;
 import android.os.Build;
 import android.R;
 import android.content.BroadcastReceiver;
-import android.media.AudioManager;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+//import android.graphics.BitmapFactory;
+//import android.net.Uri;
+//import java.io.BufferedInputStream;
+//import java.io.File;
+//import java.io.FileInputStream;
+//import java.io.InputStream;
+//import java.net.HttpURLConnection;
+//import java.net.URL;
 
 public class MusicControls extends CordovaPlugin {
 	private MusicControlsBroadcastReceiver mMessageReceiver;
 	private MusicControlsNotification notification;
 	private MediaSessionCompat mediaSessionCompat;
+	private PendingIntent mediaButtonPendingIntent;
 	private final int notificationID=7824;
 	private AudioManager mAudioManager;
-	private PendingIntent mediaButtonPendingIntent;
 	private boolean mediaButtonAccess=true;
 	private long playbackPosition = PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN;
 	private android.media.session.MediaSession.Token token;
@@ -175,8 +173,8 @@ public class MusicControls extends CordovaPlugin {
 
 	@Override
 	public boolean execute(final String action, final JSONArray args, final CallbackContext callbackContext) throws JSONException {
-		final Context context=this.cordova.getActivity().getApplicationContext();
-		final Activity activity=this.cordova.getActivity();
+		final Activity activity = this.cordova.getActivity();
+		final Context context = this.cordova.getActivity().getApplicationContext();
 
 		if (action.equals("create")) {
 			final MusicControlsInfos infos = new MusicControlsInfos(args);
@@ -184,7 +182,7 @@ public class MusicControls extends CordovaPlugin {
 
 			this.cordova.getThreadPool().execute(new Runnable() {
 				public void run() {
-					notification.updateNotification(infos);
+					
 
 					// track title
 					metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_TITLE, infos.track);
@@ -201,14 +199,16 @@ public class MusicControls extends CordovaPlugin {
 						playbackPosition = PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN;
 					}
 
-					Bitmap art = getBitmapCover(infos.cover);
+					Bitmap art = BitmapUtils.getBitmapCover(context, infos.cover);
 					if(art != null){
 						metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, art);
 						metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, art);
-
 					}
 
 					mediaSessionCompat.setMetadata(metadataBuilder.build());
+
+					//Moving this update after metadataBuilder settings
+					notification.updateNotification(infos);
 
 					if(infos.isPlaying)
 						setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
@@ -231,6 +231,20 @@ public class MusicControls extends CordovaPlugin {
 
 			callbackContext.success("success");
 		}
+		else if (action.equals("updateShuffle")){
+			final JSONObject params = args.getJSONObject(0);
+			final boolean isShuffle = params.getBoolean("isShuffle");
+			mediaSessionCompat.setShuffleMode(isShuffle ? PlaybackStateCompat.SHUFFLE_MODE_ALL : PlaybackStateCompat.SHUFFLE_MODE_NONE);
+			callbackContext.success("success");
+
+		}
+		else if (action.equals("updateIsBuffering")){
+			final JSONObject params = args.getJSONObject(0);
+			playbackPosition = params.getLong("elapsed");
+			final boolean isBuffering = params.getBoolean("isBuffering");
+			setMediaPlaybackState(PlaybackStateCompat.STATE_BUFFERING);
+			callbackContext.success("success");
+		}
 		else if (action.equals("updateDismissable")){
 			final JSONObject params = args.getJSONObject(0);
 			final boolean dismissable = params.getBoolean("dismissable");
@@ -239,7 +253,7 @@ public class MusicControls extends CordovaPlugin {
 		}
 		else if (action.equals("updateElapsed")){
 			final JSONObject params = args.getJSONObject(0);
-			playbackPosition = params.getLong("elapsed") * 1000;
+			playbackPosition = params.getLong("elapsed");
 			final boolean isPlaying = params.getBoolean("isPlaying");
 			if (isPlaying)
 				setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
@@ -288,7 +302,9 @@ public class MusicControls extends CordovaPlugin {
 		long position;
 		if (state == PlaybackStateCompat.STATE_PLAYING) {
 			actions |= PlaybackStateCompat.ACTION_PAUSE;
-			playbackSpeed = 1.0f;
+			//We keep the speed 0 to control the state on the consumer app, avoiding issues of synching
+			//playbackSpeed = 1.0f;
+			playbackSpeed = 0;
 			position = playbackPosition;
 		} else {
 			actions |= PlaybackStateCompat.ACTION_PLAY;
@@ -305,62 +321,5 @@ public class MusicControls extends CordovaPlugin {
 				.setState(state, playbackPosition, playbackSpeed)
 				.build();
 		this.mediaSessionCompat.setPlaybackState(playbackState);
-	}
-
-	// Get image from url
-	private Bitmap getBitmapCover(String coverURL){
-		try{
-			if(coverURL.matches("^(https?|ftp)://.*$"))
-				// Remote image
-				return getBitmapFromURL(coverURL);
-			else {
-				// Local image
-				return getBitmapFromLocal(coverURL);
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			return null;
-		}
-	}
-
-	// get Local image
-	private Bitmap getBitmapFromLocal(String localURL){
-		try {
-			Uri uri = Uri.parse(localURL);
-			File file = new File(uri.getPath());
-			FileInputStream fileStream = new FileInputStream(file);
-			BufferedInputStream buf = new BufferedInputStream(fileStream);
-			Bitmap myBitmap = BitmapFactory.decodeStream(buf);
-			buf.close();
-			return myBitmap;
-		} catch (Exception ex) {
-			try {
-				InputStream fileStream = cordovaActivity.getAssets().open("www/" + localURL);
-				BufferedInputStream buf = new BufferedInputStream(fileStream);
-				Bitmap myBitmap = BitmapFactory.decodeStream(buf);
-				buf.close();
-				return myBitmap;
-			} catch (Exception ex2) {
-				ex.printStackTrace();
-				ex2.printStackTrace();
-				return null;
-			}
-		}
-	}
-
-	// get Remote image
-	private Bitmap getBitmapFromURL(String strURL) {
-		try {
-			URL url = new URL(strURL);
-			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-			connection.setDoInput(true);
-			connection.connect();
-			InputStream input = connection.getInputStream();
-			Bitmap myBitmap = BitmapFactory.decodeStream(input);
-			return myBitmap;
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			return null;
-		}
 	}
 }

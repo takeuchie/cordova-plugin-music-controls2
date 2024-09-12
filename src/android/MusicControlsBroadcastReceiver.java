@@ -1,15 +1,15 @@
 package com.homerours.musiccontrols;
 
-import org.apache.cordova.CallbackContext;
-import org.apache.cordova.CordovaPlugin;
-
+import android.content.BroadcastReceiver;
 import android.util.Log;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.content.BroadcastReceiver;
 import android.view.KeyEvent;
+import android.media.AudioManager;
+import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaPlugin;
 
 public class MusicControlsBroadcastReceiver extends BroadcastReceiver {
 	private CallbackContext cb;
@@ -54,7 +54,12 @@ public class MusicControlsBroadcastReceiver extends BroadcastReceiver {
 					default:
 						break;
 				}
-			} else if (message.equals("music-controls-media-button")){
+			} else if (message.equals(AudioManager.ACTION_AUDIO_BECOMING_NOISY)){ 
+				
+				this.cb.success("{\"message\": \"music-controls-audio-becoming-noisy\"}");
+				this.cb = null;
+			}
+			else if (message.equals("music-controls-media-button")){
 				// Media button
 				KeyEvent event = (KeyEvent) intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
 				if (event.getAction() == KeyEvent.ACTION_DOWN) {
