@@ -46,7 +46,7 @@ public class MusicControlsNotification {
 			// Clean up old duplication notification channels
 			List<NotificationChannel> chanList = this.notificationManager.getNotificationChannels();
 
-			if (chanList.get(0).getId() != this.CHANNEL_ID) {
+			if (!chanList.isEmpty() && chanList.get(0).getId() != this.CHANNEL_ID) {
 				for (int i=0; i<chanList.size(); i++) {
 					//System.out.println(list.get(i));
 					String chanID = chanList.get(i).getId();

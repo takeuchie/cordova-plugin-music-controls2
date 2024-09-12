@@ -128,6 +128,21 @@ public class MusicControls extends CordovaPlugin {
 		this.mMessageReceiver = new MusicControlsBroadcastReceiver(this);
 		this.registerBroadcaster(mMessageReceiver);
 
+		// Register media (headset) button event receiver
+		// Moving this block before the mediaSessionCompat declaration so we have the mediaButtonPendingIntent created.
+		try {
+			this.mAudioManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+			Intent headsetIntent = new Intent("music-controls-media-button");
+			headsetIntent.setPackage(context.getPackageName());
+			this.mediaButtonPendingIntent = PendingIntent.getBroadcast(
+				context, 0, headsetIntent,
+				Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE : PendingIntent.FLAG_UPDATE_CURRENT
+			);
+		} catch (Exception e) {
+			this.mediaButtonAccess=false;
+			e.printStackTrace();
+		}
+
 		this.mediaSessionCompat = new MediaSessionCompat(context, "cordova-music-controls-media-session", null, this.mediaButtonPendingIntent);
 		this.mediaSessionCompat.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
 
@@ -151,20 +166,15 @@ public class MusicControls extends CordovaPlugin {
 			}
 		};
 
-		// Register media (headset) button event receiver
+		// Splitting declaration Register media (headset) button event receiver to ensure we have the mediaSessionCompat object created to trigger the registerMediaButton
 		try {
-			this.mAudioManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
-			Intent headsetIntent = new Intent("music-controls-media-button");
-			headsetIntent.setPackage(context.getPackageName());
-			this.mediaButtonPendingIntent = PendingIntent.getBroadcast(
-				context, 0, headsetIntent,
-				Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE : PendingIntent.FLAG_UPDATE_CURRENT
-			);
 			this.registerMediaButtonEvent();
 		} catch (Exception e) {
 			this.mediaButtonAccess=false;
 			e.printStackTrace();
 		}
+
+
 
 		Intent startServiceIntent = new Intent(activity,MusicControlsNotificationKiller.class);
 		startServiceIntent.putExtra("notificationID",this.notificationID);
