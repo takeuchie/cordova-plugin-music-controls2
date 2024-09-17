@@ -36,6 +36,7 @@ public class MusicControlsBroadcastReceiver extends BroadcastReceiver {
 
 		if (this.cb != null){
 			String message = intent.getAction();
+			//Log.w("MusicControls","Broadcast on Receive - Message : "+message);
 
 			if(message.equals(Intent.ACTION_HEADSET_PLUG)){
 				// Headphone plug/unplug
