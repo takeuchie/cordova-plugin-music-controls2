@@ -67,6 +67,19 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
   }
 
   @Override
+  public void onCustomAction(String action, Bundle extras) {
+    super.onCustomAction(action,extras);
+    Log.w("MusicCOntrols", "Unknown custom action " + action);
+     /* if (action.equals(CUSTOM_ACTION_1)) {
+          doCustomAction1(extras);
+      } else if (action.equals(CUSTOM_ACTION_2)) {
+          doCustomAction2(extras);
+      } else {
+          Log.w(TAG, "Unknown custom action " + action);
+      }*/
+  }
+
+  @Override
   public boolean onMediaButtonEvent(Intent mediaButtonIntent) {
     final KeyEvent event = (KeyEvent) mediaButtonIntent.getExtras().get(Intent.EXTRA_KEY_EVENT);
     //Log.w("MusicControls", "on Media Button Event");

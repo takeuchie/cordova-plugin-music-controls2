@@ -1,66 +1,59 @@
 package com.homerours.musiccontrols;
 
 import android.content.BroadcastReceiver;
-import android.util.Log;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.view.KeyEvent;
 import android.media.AudioManager;
+//import android.util.Log;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
+
+//import android.app.Activity;
+//import android.os.Bundle;
 
 public class MusicControlsBroadcastReceiver extends BroadcastReceiver {
 	private CallbackContext cb;
 	private MusicControls musicControls;
 
-
-	public MusicControlsBroadcastReceiver(MusicControls musicControls){
-		this.musicControls=musicControls;
+	public MusicControlsBroadcastReceiver(MusicControls musicControls) {
+		this.musicControls = musicControls;
 	}
 
-	public void setCallback(CallbackContext cb){
+	public void setCallback(CallbackContext cb) {
 		this.cb = cb;
 	}
 
-	public void stopListening(){
-		if (this.cb != null){
-			this.cb.success("{\"message\": \"music-controls-stop-listening\" }");
-			this.cb = null;
-		}
+	public void stopListening() {
+		this.cb = CallbackUtils.sendMessage(this.cb, CallbackUtils.MUSIC_CONTROLS_STOP_LISTENING);
 	}
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
 
-		if (this.cb != null){
+		if (this.cb != null) {
 			String message = intent.getAction();
-			//Log.w("MusicControls","Broadcast on Receive - Message : "+message);
+			// Log.w("MusicControls","Broadcast on Receive - Message : "+message);
 
-			if(message.equals(Intent.ACTION_HEADSET_PLUG)){
+			if (message.equals(Intent.ACTION_HEADSET_PLUG)) {
 				// Headphone plug/unplug
 				int state = intent.getIntExtra("state", -1);
 				switch (state) {
 					case 0:
-						this.cb.success("{\"message\": \"music-controls-headset-unplugged\"}");
-						this.cb = null;
+						this.cb = CallbackUtils.sendMessage(this.cb, CallbackUtils.MUSIC_CONTROLS_HEADSET_UNPLUGGED);
 						this.musicControls.unregisterMediaButtonEvent();
 						break;
 					case 1:
-						this.cb.success("{\"message\": \"music-controls-headset-plugged\"}");
-						this.cb = null;
+						this.cb = CallbackUtils.sendMessage(this.cb, CallbackUtils.MUSIC_CONTROLS_HEADSET_PLUGGED);
 						this.musicControls.registerMediaButtonEvent();
 						break;
 					default:
 						break;
 				}
-			} else if (message.equals(AudioManager.ACTION_AUDIO_BECOMING_NOISY)){ 
-				
-				this.cb.success("{\"message\": \"music-controls-audio-becoming-noisy\"}");
-				this.cb = null;
-			}
-			else if (message.equals("music-controls-media-button")){
+			} else if (message.equals(AudioManager.ACTION_AUDIO_BECOMING_NOISY)) {
+				this.cb = CallbackUtils.sendMessage(this.cb, CallbackUtils.MUSIC_CONTROLS_AUDIO_BECOMING_NOISY);
+			} else if (message.equals(CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON)) {
 				// Media button
 				KeyEvent event = (KeyEvent) intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
 				if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -68,78 +61,94 @@ public class MusicControlsBroadcastReceiver extends BroadcastReceiver {
 					int keyCode = event.getKeyCode();
 					switch (keyCode) {
 						case KeyEvent.KEYCODE_MEDIA_NEXT:
-							this.cb.success("{\"message\": \"music-controls-media-button-next\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_NEXT);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_PAUSE:
-							this.cb.success("{\"message\": \"music-controls-media-button-pause\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_PAUSE);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_PLAY:
-							this.cb.success("{\"message\": \"music-controls-media-button-play\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_PLAY);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-							this.cb.success("{\"message\": \"music-controls-media-button-play-pause\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_PLAY_PAUSE);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
-							this.cb.success("{\"message\": \"music-controls-media-button-previous\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_PREVIOUS);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_STOP:
-							this.cb.success("{\"message\": \"music-controls-media-button-stop\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_STOP);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD:
-							this.cb.success("{\"message\": \"music-controls-media-button-fast-forward\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_FAST_FORWARD);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_REWIND:
-							this.cb.success("{\"message\": \"music-controls-media-button-rewind\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_REWIND);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_SKIP_BACKWARD:
-							this.cb.success("{\"message\": \"music-controls-media-button-skip-backward\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_SKIP_BACKWARD);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD:
-							this.cb.success("{\"message\": \"music-controls-media-button-skip-forward\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_SKIP_FORWARD);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_STEP_BACKWARD:
-							this.cb.success("{\"message\": \"music-controls-media-button-step-backward\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_STEP_BACKWARD);
 							break;
 						case KeyEvent.KEYCODE_MEDIA_STEP_FORWARD:
-							this.cb.success("{\"message\": \"music-controls-media-button-step-forward\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_STEP_FORWARD);
 							break;
 						case KeyEvent.KEYCODE_META_LEFT:
-							this.cb.success("{\"message\": \"music-controls-media-button-meta-left\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_META_LEFT);
 							break;
 						case KeyEvent.KEYCODE_META_RIGHT:
-							this.cb.success("{\"message\": \"music-controls-media-button-meta-right\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_META_RIGHT);
 							break;
 						case KeyEvent.KEYCODE_MUSIC:
-							this.cb.success("{\"message\": \"music-controls-media-button-music\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_MUSIC);
 							break;
 						case KeyEvent.KEYCODE_VOLUME_UP:
-							this.cb.success("{\"message\": \"music-controls-media-button-volume-up\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_VOLUME_UP);
 							break;
 						case KeyEvent.KEYCODE_VOLUME_DOWN:
-							this.cb.success("{\"message\": \"music-controls-media-button-volume-down\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_VOLUME_DOWN);
 							break;
 						case KeyEvent.KEYCODE_VOLUME_MUTE:
-							this.cb.success("{\"message\": \"music-controls-media-button-volume-mute\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_VOLUME_MUTE);
 							break;
 						case KeyEvent.KEYCODE_HEADSETHOOK:
-							this.cb.success("{\"message\": \"music-controls-media-button-headset-hook\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb,
+									CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_HEADSET_HOOK);
 							break;
 						default:
-							this.cb.success("{\"message\": \"" + message + "\"}");
+							this.cb = CallbackUtils.sendMessage(this.cb, message);
 							break;
 					}
 					this.cb = null;
 				}
-			} else if (message.equals("music-controls-destroy")){
+			} else if (message.equals(CallbackUtils.MUSIC_CONTROLS_DESTROY)) {
 				// Close Button
-				this.cb.success("{\"message\": \"music-controls-destroy\"}");
-				this.cb = null;
+				this.cb = CallbackUtils.sendMessage(this.cb, CallbackUtils.MUSIC_CONTROLS_DESTROY);
 				this.musicControls.destroyPlayerNotification();
 			} else {
-				this.cb.success("{\"message\": \"" + message + "\"}");
-				this.cb = null;
+				this.cb = CallbackUtils.sendMessage(this.cb, message);
 			}
-
 
 		}
 
