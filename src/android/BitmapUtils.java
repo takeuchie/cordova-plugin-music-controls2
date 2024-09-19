@@ -5,7 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.util.Base64;
-import android.util.Log;
+//import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -25,13 +25,12 @@ class BitmapUtils {
                 // Remote image
                 return getBitmapFromURL(coverURL);
             }
-            
+
             else if (coverURL.matches("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$")) {
                 // Base image
 
                 return getBitmapFromBase64(coverURL);
-            }
-            else {
+            } else {
                 // Local image
                 return getBitmapFromLocal(context, coverURL);
             }
@@ -41,16 +40,16 @@ class BitmapUtils {
         }
     }
 
-        @Nullable
+    @Nullable
     private static Bitmap getBitmapFromBase64(String encodedImage) {
         try {
 
             byte[] decodedString = Base64.decode(encodedImage, Base64.DEFAULT);
-            Bitmap myBitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length); 
+            Bitmap myBitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
             return myBitmap;
         } catch (Exception ex) {
-                ex.printStackTrace();
-                return null;
+            ex.printStackTrace();
+            return null;
         }
     }
 
