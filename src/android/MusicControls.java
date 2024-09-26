@@ -13,7 +13,7 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.os.Build;
 import android.media.AudioManager;
 import android.graphics.Bitmap;
-//import android.util.Log;
+import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
@@ -76,11 +76,16 @@ public class MusicControls extends CordovaPlugin {
 			actions |= PlaybackStateCompat.ACTION_SEEK_TO;
 		}
 
-		PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder()
-				.setActions(actions)
-				.setState(state, playbackPosition, playbackSpeed)
-				.build();
-		this.mediaSessionCompat.setPlaybackState(playbackState);
+		try {
+			// Handling issues that can cause a crash by calling beginBroadcast() or finishBroadcast() within mediaSessionCompat after calling mediaSessionCompat.setPlaybackState
+			PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder()
+					.setActions(actions)
+					.setState(state, playbackPosition, playbackSpeed)
+					.build();
+			this.mediaSessionCompat.setPlaybackState(playbackState);
+		} catch (IllegalStateException e) {
+			Log.e("MusicControls", e.getMessage(), e);
+		}
 	}
 
 	private void setMediaSession(Context context) {
@@ -231,6 +236,8 @@ public class MusicControls extends CordovaPlugin {
 						final MusicControlsInfos infos = new MusicControlsInfos(args);
 						final MediaMetadataCompat.Builder metadataBuilder = new MediaMetadataCompat.Builder();
 
+						Log.w("MusicControls", "Notification Title on create " + infos.track);
+
 						// track title
 						metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_TITLE, infos.track);
 						// artists
@@ -341,6 +348,8 @@ public class MusicControls extends CordovaPlugin {
 						final JSONObject params = args.getJSONObject(0);
 						playbackPosition = params.getLong("elapsed");
 						final boolean isPlaying = params.getBoolean("isPlaying");
+						Log.w("MusicControls", "Update playing " + isPlaying);
+
 						this.notification.updateIsPlaying(isPlaying);
 
 						if (isPlaying)
@@ -357,16 +366,16 @@ public class MusicControls extends CordovaPlugin {
 
 			case "destroy":
 				cordova.getThreadPool().execute(() -> {
-						this.notification.destroy();
-						this.mMessageReceiver.stopListening();
-						callbackContext.success("success");
+					this.notification.destroy();
+					this.mMessageReceiver.stopListening();
+					callbackContext.success("success");
 				});
 				break;
 
 			case "watch":
 				cordova.getThreadPool().execute(() -> {
-						mMediaSessionCallback.setCallback(callbackContext);
-						mMessageReceiver.setCallback(callbackContext);
+					mMediaSessionCallback.setCallback(callbackContext);
+					mMessageReceiver.setCallback(callbackContext);
 				});
 				break;
 		}

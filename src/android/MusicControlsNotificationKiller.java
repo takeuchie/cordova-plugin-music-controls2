@@ -42,7 +42,7 @@ public class MusicControlsNotificationKiller extends Service {
 		this.startForeground(this.NOTIFICATION_ID, notification);
 	}
 
-	private void setForeground(int state) {
+	private void setForegroundService(int state) {
 		if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
 			return;
 		}
@@ -53,11 +53,11 @@ public class MusicControlsNotificationKiller extends Service {
 
 	public void clearForeground() {
 		// using STOP_FOREGROUND_DETACH instead of STOP_FOREGROUND_REMOVE will keep the notification alive
-		this.setForeground(STOP_FOREGROUND_DETACH);
+		this.setForegroundService(STOP_FOREGROUND_DETACH);
 	}
 
 	public void killForeground() {
 		// Using STOP_FOREGROUND_DETACH instead of STOP_FOREGROUND_REMOVE will keep the notification alive
-		this.setForeground(STOP_FOREGROUND_REMOVE);
+		this.setForegroundService(STOP_FOREGROUND_REMOVE);
 	}
 }

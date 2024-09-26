@@ -11,7 +11,7 @@ import org.apache.cordova.CallbackContext;
 /*
 * The onMediaButtonEvent method is called when using external devices, such as bluetooth devices.
 * The other methods like OnPlay, OnPause and etc are called from the notification itself.
-* Couldn't find where the BroadcastReceiver class is used, but apparently it is used for wired phones.
+* Couldn't find where the BroadcastReceiver class is used, but apparently it is used for wired headsets (?).
 */
 
 public class MediaSessionCallback extends MediaSessionCompat.Callback {
@@ -22,111 +22,97 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
     this.cb = cb;
   }
 
+  public void sendMessage(String message) {
+    sendMessage(message, null);
+  }
+
+  public void sendMessage(String message, String extra) {
+    if (message != CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_PAUSE
+        && message != CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_PLAY
+        && message != CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_PLAY) {
+      //If we are sending a play / pause these events will still trigger the OnPause and OnPLay as we call Super, so we don't send the callback.
+      cb = CallbackUtils.sendMessage(cb, message, extra);
+    }
+  }
+
   @Override
   public void onPlay() {
+    Log.w("MusicControls", "On Play");
     super.onPlay();
-    cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_PLAY, "music-controls-media-button-play 1");
+    sendMessage(CallbackUtils.MUSIC_CONTROLS_PLAY);
   }
 
   @Override
   public void onPause() {
+    Log.w("MusicControls", "On Pause");
     super.onPause();
-    cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_PAUSE, "music-controls-media-button-pause 1");
+    sendMessage(CallbackUtils.MUSIC_CONTROLS_PAUSE);
   }
 
   @Override
   public void onSkipToNext() {
+    Log.w("MusicControls", "On Skip to Next");
     super.onSkipToNext();
-    cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_NEXT, "music-controls-media-button-next 1");
+    sendMessage(CallbackUtils.MUSIC_CONTROLS_NEXT);
   }
 
   @Override
   public void onSkipToPrevious() {
+    Log.w("MusicControls", "On Skip To Previous");
     super.onSkipToPrevious();
-    cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_PREVIOUS, "music-controls-media-button-previous 1");
+    sendMessage(CallbackUtils.MUSIC_CONTROLS_PREVIOUS);
   }
 
   @Override
   public void onSeekTo(long pos) {
+    Log.w("MusicControls", "On Seek To");
     super.onSeekTo(pos);
-    cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_SEEK_TO, "music-controls-media-button-seek-to",
-        Long.toString(pos));
+    sendMessage(CallbackUtils.MUSIC_CONTROLS_SEEK_TO, Long.toString(pos));
   }
 
   @Override
   public void onPlayFromMediaId(String mediaId, Bundle extras) {
+    Log.w("MusicControls", "On Play From Media");
     super.onPlayFromMediaId(mediaId, extras);
   }
 
   @Override
   public void onSetShuffleMode(int shuffleMode) {
+    Log.w("MusicControls", "On Set Shuffle Mode");
     super.onSetShuffleMode(shuffleMode);
-    //Log.w("MusicControls", "On Set Shuffle Mode");
-    cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_SET_SHUFFLE_MODE,
-        "music-controls-media-button-set-shuffle-mode", Integer.toString(shuffleMode));
+    sendMessage(CallbackUtils.MUSIC_CONTROLS_SET_SHUFFLE_MODE, Long.toString(shuffleMode));
   }
 
   @Override
   public void onCustomAction(String action, Bundle extras) {
-    super.onCustomAction(action,extras);
-    Log.w("MusicCOntrols", "Unknown custom action " + action);
-     /* if (action.equals(CUSTOM_ACTION_1)) {
-          doCustomAction1(extras);
-      } else if (action.equals(CUSTOM_ACTION_2)) {
-          doCustomAction2(extras);
-      } else {
-          Log.w(TAG, "Unknown custom action " + action);
-      }*/
+    Log.w("MusicControls", "Unknown custom action " + action);
+    super.onCustomAction(action, extras);
   }
 
   @Override
   public boolean onMediaButtonEvent(Intent mediaButtonIntent) {
+    Log.w("MusicControls", "on Media Button Event");
     final KeyEvent event = (KeyEvent) mediaButtonIntent.getExtras().get(Intent.EXTRA_KEY_EVENT);
-    //Log.w("MusicControls", "on Media Button Event");
     if (event == null) {
       return super.onMediaButtonEvent(mediaButtonIntent);
     }
 
-    //Log.w("MusicControls", "on Media Button Event - Action: " + event.getAction());
+    Log.w("MusicControls", "on Media Button Event - Action: " + event.getAction());
 
     if (event.getAction() == KeyEvent.ACTION_DOWN) {
       final int keyCode = event.getKeyCode();
-      //Log.w("MusicControls", "on Media Button Event - Key Code: " + keyCode);
-      switch (keyCode) {
-        case KeyEvent.KEYCODE_MEDIA_PAUSE:
-          cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_PAUSE, "music-controls-media-button-pause");
-          break;
-        case KeyEvent.KEYCODE_MEDIA_PLAY:
-          cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_PLAY, "music-controls-media-button-play");
-          break;
-        case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
-          cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_PREVIOUS,
-              "music-controls-media-button-previous");
-          break;
-        case KeyEvent.KEYCODE_MEDIA_NEXT:
-          cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_NEXT, "music-controls-media-button-next");
-          break;
-        case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-          cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_TOGGLE_PLAY_PAUSE,
-              "music-controls-media-button-play-pause");
-          break;
-        case KeyEvent.KEYCODE_MEDIA_STOP:
-          cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_STOP, "music-controls-media-button-stop");
-          break;
-        case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD:
-          cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_FORWARD,
-              "music-controls-media-button-forward");
-          break;
-        case KeyEvent.KEYCODE_MEDIA_REWIND:
-          cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_REWIND, "music-controls-media-button-rewind");
-          break;
-        default:
-          cb = CallbackUtils.sendMessage(cb, CallbackUtils.MUSIC_CONTROLS_UNKNOWN,
-              "music-controls-media-button-unknown", Integer.toString(keyCode));
-          return super.onMediaButtonEvent(mediaButtonIntent);
+      final String message = CallbackUtils.switchMediaButtonKeyCode(keyCode);
+      Log.w("MusicControls", "on Media Button Event - Key Code: " + keyCode);
+
+      if (message == CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON_UNKNOWN) {
+        sendMessage(message, Integer.toString(keyCode));
+      } else {
+        sendMessage(message);
       }
+
+      return super.onMediaButtonEvent(mediaButtonIntent);
     }
 
-    return true;
+    return false;
   }
 }
