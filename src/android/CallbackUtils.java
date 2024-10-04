@@ -9,7 +9,7 @@ class CallbackUtils {
 
     @Nullable
     public static CallbackContext sendMessage(CallbackContext cb, String message, @Nullable String extra) {
-        Log.w("MusicControls", "Trying cordova callback: "+message);
+        Log.d("MusicControls", "Trying cordova callback: "+message);
         if (cb != null) {
             String cbStr = "{\"message\": \"" + message + "\"";
             if (extra != null && extra != "") {
@@ -17,7 +17,7 @@ class CallbackUtils {
             }
             cbStr = cbStr + "}";
             cb.success(cbStr);
-            Log.w("MusicControls", "Success cordova callback: "+message);
+            Log.d("MusicControls", "Success cordova callback: "+message);
         }
         return null;
     }

@@ -41,11 +41,11 @@ public class MusicControlsBroadcastReceiver extends BroadcastReceiver {
 		switch (state) {
 			case 0:
 				sendMessage(CallbackUtils.MUSIC_CONTROLS_HEADSET_UNPLUGGED);
-				this.musicControls.unregisterMediaButtonEvent();
+				//this.musicControls.unregisterMediaButtonEvent();
 				break;
 			case 1:
 				sendMessage(CallbackUtils.MUSIC_CONTROLS_HEADSET_PLUGGED);
-				this.musicControls.registerMediaButtonEvent();
+				//this.musicControls.registerMediaButtonEvent();
 				break;
 			default:
 				break;
@@ -54,10 +54,10 @@ public class MusicControlsBroadcastReceiver extends BroadcastReceiver {
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
-
+		Log.d("MusicControls", "Broadcast on Receive");
 		if (this.cb != null) {
 			String message = intent.getAction();
-			Log.w("MusicControls", "Broadcast on Receive - Message : " + message);
+			Log.d("MusicControls", "Broadcast on Receive - Message : " + message);
 
 			switch (message) {
 				case Intent.ACTION_HEADSET_PLUG:
@@ -70,7 +70,7 @@ public class MusicControlsBroadcastReceiver extends BroadcastReceiver {
 					break;
 
 				case CallbackUtils.MUSIC_CONTROLS_MEDIA_BUTTON:
-					//Media button
+					// Media button
 					KeyEvent event = (KeyEvent) intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
 					if (event.getAction() == KeyEvent.ACTION_DOWN) {
 

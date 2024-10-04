@@ -89,7 +89,7 @@ public class MusicControlsNotification {
 		this.infos = newInfos;
 		this.createBuilder();
 		Notification noti = this.notificationBuilder.build();
-		Log.w("MusicControls","Notification Title"+ noti.extras.getString(noti.EXTRA_TITLE,"empty"));
+		Log.d("MusicControls","Notification Title"+ noti.extras.getString(noti.EXTRA_TITLE,"empty"));
 		this.notificationManager.notify(this.notificationID, noti);
 		this.onNotificationUpdated(noti);
 	}
