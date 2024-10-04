@@ -11,7 +11,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Build;
 import android.media.session.MediaSession.Token;
-//import android.util.Log;
+import android.util.Log;
 
 import org.apache.cordova.CordovaInterface;
 import java.util.List;
@@ -35,8 +35,7 @@ public class MusicControlsNotification {
 
 	// Public Constructor
 	public MusicControlsNotification(Activity cordovaActivity, int id, Token token) {
-		this.CHANNEL_ID = "MusicControls2-Chan"; // UUID.randomUUID().toString() channel ID should be unique per app and
-													// constant
+		this.CHANNEL_ID = "MusicControls2-Channel"; // UUID.randomUUID().toString() channel ID should be unique per app and constant
 		this.notificationID = id;
 		this.cordovaActivity = cordovaActivity;
 		Context context = cordovaActivity;
@@ -62,6 +61,7 @@ public class MusicControlsNotification {
 			// The user-visible description of the channel.
 			String description = "Control Playing Audio";
 
+			//Low is important to avoid notifications sounds
 			int importance = NotificationManager.IMPORTANCE_LOW;
 
 			NotificationChannel mChannel = new NotificationChannel(this.CHANNEL_ID, name, importance);
@@ -71,6 +71,9 @@ public class MusicControlsNotification {
 
 			// Don't show badges for this channel
 			mChannel.setShowBadge(false);
+
+			//Don't apply sound to the channel
+			mChannel.setSound(null, null);
 
 			this.notificationManager.createNotificationChannel(mChannel);
 		}
@@ -86,8 +89,7 @@ public class MusicControlsNotification {
 		this.infos = newInfos;
 		this.createBuilder();
 		Notification noti = this.notificationBuilder.build();
-		// Log.w("MusicControls","Notification Title"+
-		// noti.extras.getString(noti.EXTRA_TITLE,"empty"));
+		Log.d("MusicControls","Notification Title"+ noti.extras.getString(noti.EXTRA_TITLE,"empty"));
 		this.notificationManager.notify(this.notificationID, noti);
 		this.onNotificationUpdated(noti);
 	}
