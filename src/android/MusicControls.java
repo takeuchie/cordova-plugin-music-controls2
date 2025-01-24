@@ -24,6 +24,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ConcurrentModificationException;
+
 //import android.app.Notification;
 //import android.app.Activity;
 //import android.app.Service;
