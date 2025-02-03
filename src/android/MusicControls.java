@@ -24,6 +24,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ConcurrentModificationException;
+
 //import android.app.Notification;
 //import android.app.Activity;
 //import android.app.Service;
@@ -42,12 +44,20 @@ public class MusicControls extends CordovaPlugin {
 	private boolean mediaButtonAccess = true;
 	private long playbackPosition = PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN;
 	private android.media.session.MediaSession.Token token;
+	private int currentPlaybackState = PlaybackStateCompat.STATE_NONE;
+	private boolean currentIsPlaying = false;
 
 	private Activity cordovaActivity;
 
 	private MediaSessionCallback mMediaSessionCallback;
 
-	private void setMediaPlaybackState(int state) {
+	private synchronized void setMediaPlaybackState(int newState) {
+		// Skip if the state hasn't changed
+		if (newState == currentPlaybackState) {
+			Log.d("MusicControls", "Skipping playback state update - already in state: " + newState);
+			return;
+		}
+
 		long actions = PlaybackStateCompat.ACTION_PLAY_PAUSE |
 				PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
 				PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
@@ -60,14 +70,21 @@ public class MusicControls extends CordovaPlugin {
 			// Handling issues that can cause a crash by calling beginBroadcast() or
 			// finishBroadcast() within mediaSessionCompat after calling
 			// mediaSessionCompat.setPlaybackState
-			PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder()
-					.setActions(actions)
-					.setState(state, playbackPosition, playbackSpeed)
-					.build();
-			this.mediaSessionCompat.setPlaybackState(playbackState);
-			Log.d("MusicControls", "SetPlaybackState " + state);
+			if (this.mediaSessionCompat != null) {
+				PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder()
+						.setActions(actions)
+						.setState(newState, playbackPosition, playbackSpeed)
+						.build();
+				this.mediaSessionCompat.setPlaybackState(playbackState);
+				currentPlaybackState = newState;
+				Log.d("MusicControls", "Updated playback state: " + newState);
+			} else {
+				Log.w("MusicControls", "Attempted to set playback state but mediaSessionCompat is null");
+			}
 		} catch (IllegalStateException e) {
-			Log.e("MusicControls", e.getMessage(), e);
+			Log.e("MusicControls", "IllegalStateException in setMediaPlaybackState", e);
+		} catch (Exception e) {
+			Log.e("MusicControls", "Unexpected error in setMediaPlaybackState", e);
 		}
 	}
 
@@ -178,12 +195,15 @@ public class MusicControls extends CordovaPlugin {
 
 						// Moving this update after metadataBuilder settings
 						notification.updateNotification(infos);
+						currentIsPlaying = infos.isPlaying;
 
-						if (infos.isPlaying)
+						if (infos.isPlaying) {
 							setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-						else
+						} else {
 							setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+						}
 
+						Log.d("MusicControls", "Created with initial playing state: " + infos.isPlaying);
 						callbackContext.success("success");
 					} catch (JSONException e) {
 						e.printStackTrace();
@@ -197,17 +217,38 @@ public class MusicControls extends CordovaPlugin {
 					try {
 						final JSONObject params = args.getJSONObject(0);
 						final boolean isPlaying = params.getBoolean("isPlaying");
-						this.notification.updateIsPlaying(isPlaying);
 
-						if (isPlaying)
-							setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-						else
-							setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+						synchronized (this.notification) {
+							try {
+								// Skip if the playing state hasn't changed
+								if (isPlaying == currentIsPlaying) {
+									Log.d("MusicControls", "Skipping isPlaying update - already in state: " + isPlaying);
+									callbackContext.success("success");
+									return;
+								}
 
-						callbackContext.success("success");
+								Log.d("MusicControls", "Updating isPlaying state to: " + isPlaying);
+								this.notification.updateIsPlaying(isPlaying);
+								currentIsPlaying = isPlaying;
+
+								if (isPlaying) {
+									setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+								} else {
+									setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+								}
+
+								callbackContext.success("success");
+							} catch (ConcurrentModificationException e) {
+								Log.e("MusicControls", "ConcurrentModificationException while updating isPlaying state", e);
+								callbackContext.error("Failed to update playing state: Concurrent modification detected");
+							} catch (Exception e) {
+								Log.e("MusicControls", "Unexpected error while updating isPlaying state", e);
+								callbackContext.error("Failed to update playing state: " + e.getMessage());
+							}
+						}
 					} catch (JSONException e) {
-						e.printStackTrace();
-						callbackContext.error(e.getLocalizedMessage());
+						Log.e("MusicControls", "JSONException while parsing updateIsPlaying parameters", e);
+						callbackContext.error("Invalid parameters: " + e.getMessage());
 					}
 				});
 				break;
@@ -263,31 +304,61 @@ public class MusicControls extends CordovaPlugin {
 						final JSONObject params = args.getJSONObject(0);
 						playbackPosition = params.getLong("elapsed");
 						final boolean isPlaying = params.getBoolean("isPlaying");
-						Log.d("MusicControls", "Update playing " + isPlaying);
+						Log.d("MusicControls", "Update elapsed position: " + playbackPosition + ", playing: " + isPlaying);
 
-						this.notification.updateIsPlaying(isPlaying);
+						synchronized (this.notification) {
+							try {
+								// Only update isPlaying state if it has changed
+								if (isPlaying != currentIsPlaying) {
+									Log.d("MusicControls", "Updating isPlaying state in elapsed update to: " + isPlaying);
+									this.notification.updateIsPlaying(isPlaying);
+									currentIsPlaying = isPlaying;
 
-						if (isPlaying)
-							setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-						else
-							setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-						callbackContext.success("success");
+									if (isPlaying) {
+										setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+									} else {
+										setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+									}
+								} else {
+									Log.d("MusicControls", "Skipping isPlaying update in elapsed - already in state: " + isPlaying);
+								}
+
+								callbackContext.success("success");
+							} catch (ConcurrentModificationException e) {
+								Log.e("MusicControls", "ConcurrentModificationException while updating elapsed state", e);
+								callbackContext.error("Failed to update elapsed state: Concurrent modification detected");
+							} catch (Exception e) {
+								Log.e("MusicControls", "Unexpected error while updating elapsed state", e);
+								callbackContext.error("Failed to update elapsed state: " + e.getMessage());
+							}
+						}
 					} catch (JSONException e) {
-						e.printStackTrace();
-						callbackContext.error(e.getLocalizedMessage());
+						Log.e("MusicControls", "JSONException while parsing updateElapsed parameters", e);
+						callbackContext.error("Invalid parameters: " + e.getMessage());
 					}
 				});
 				break;
 
 			case "destroy":
 				cordova.getThreadPool().execute(() -> {
-					this.notification.destroy();
-					if (mediaSessionCompat != null) {
-						mediaSessionCompat.setActive(false);
-						mediaSessionCompat.release(); // Release the MediaSession when it's no longer needed
-						mediaSessionCompat = null;
+					synchronized (this.notification) {
+						try {
+							Log.d("MusicControls", "Destroying music controls");
+							this.notification.destroy();
+							if (mediaSessionCompat != null) {
+								mediaSessionCompat.setActive(false);
+								mediaSessionCompat.release(); // Release the MediaSession when it's no longer needed
+								mediaSessionCompat = null;
+							}
+							// Reset states
+							currentPlaybackState = PlaybackStateCompat.STATE_NONE;
+							currentIsPlaying = false;
+							callbackContext.success("success");
+						} catch (Exception e) {
+							Log.e("MusicControls", "Error while destroying music controls", e);
+							callbackContext.error("Failed to destroy music controls: " + e.getMessage());
+						}
 					}
-					callbackContext.success("success");
 				});
 				break;
 
@@ -304,13 +375,34 @@ public class MusicControls extends CordovaPlugin {
 
 	@Override
 	public void onDestroy() {
-		this.notification.destroy();
+		synchronized (this.notification) {
+			try {
+				Log.d("MusicControls", "Destroying music controls in onDestroy");
+				this.notification.destroy();
+				if (mediaSessionCompat != null) {
+					mediaSessionCompat.setActive(false);
+					mediaSessionCompat.release();
+					mediaSessionCompat = null;
+				}
+				currentPlaybackState = PlaybackStateCompat.STATE_NONE;
+				currentIsPlaying = false;
+			} catch (Exception e) {
+				Log.e("MusicControls", "Error in onDestroy", e);
+			}
+		}
 		super.onDestroy();
 	}
 
 	@Override
 	public void onReset() {
-		onDestroy();
+		synchronized (this.notification) {
+			try {
+				Log.d("MusicControls", "Resetting music controls");
+				onDestroy();
+			} catch (Exception e) {
+				Log.e("MusicControls", "Error in onReset", e);
+			}
+		}
 		super.onReset();
 	}
 
